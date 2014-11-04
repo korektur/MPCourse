@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<testsuite tests="1" failures="0" name="ru.ifmo.pp.fgb.LinearizabilityTest" time="0.484" errors="1" skipped="0">
+<testsuite tests="1" failures="0" name="ru.ifmo.pp.fgb.LinearizabilityTest" time="61.554" errors="0" skipped="0">
   <properties>
     <property name="idea.version" value="13.1.5"/>
     <property name="java.runtime.name" value="Java(TM) SE Runtime Environment"/>
@@ -62,23 +62,5 @@
     <property name="sun.desktop" value="gnome"/>
     <property name="sun.cpu.isalist" value=""/>
   </properties>
-  <testcase classname="ru.ifmo.pp.fgb.LinearizabilityTest" name="testLinearizability" time="0.48">
-    <error type="java.lang.AssertionError">java.lang.AssertionError
-	at ru.ifmo.pp.fgb.LinearizabilityTest.doOneExecution(LinearizabilityTest.java:132)
-	at ru.ifmo.pp.fgb.LinearizabilityTest.doOneRun(LinearizabilityTest.java:85)
-	at ru.ifmo.pp.fgb.LinearizabilityTest.testLinearizability(LinearizabilityTest.java:38)
-</error>
-    <system-out>Run #1 (0%) completed, seen 2 out of 2 results 
-Run #2 (0%) completed, seen 2 out of 2 results 
-Run #3 (0%) completed, seen 1 out of 1 results 
-Run #4 (0%) completed, seen 1 out of 1 results 
-Run #5 (0%) completed, seen 2 out of 2 results 
-Non-linearizable execution: [207226899999572, 6387633707929, class java.lang.IllegalStateException, class java.lang.IllegalStateException] -&gt; 0
-[1, 5, 9]
-[328822220025335, 319809544945361, 518837831716235]
-[Withdraw{index=9, amount=311610931716663}, Withdraw{index=9, amount=512450198008306}, Deposit{index=5, amount=873234871282526}, Withdraw{index=9, amount=688357016877099}]
-[207226899999572, class java.lang.IllegalStateException, class java.lang.IllegalStateException, class java.lang.IllegalStateException] -&gt; 351
-[class java.lang.IllegalStateException, 6387633707929, class java.lang.IllegalStateException, class java.lang.IllegalStateException] -&gt; 430
-</system-out>
-  </testcase>
+  <testcase classname="ru.ifmo.pp.fgb.LinearizabilityTest" name="testLinearizability" time="61.545"/>
 </testsuite>

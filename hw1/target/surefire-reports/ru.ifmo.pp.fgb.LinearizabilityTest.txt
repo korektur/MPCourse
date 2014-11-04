@@ -1,9 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: ru.ifmo.pp.fgb.LinearizabilityTest
 -------------------------------------------------------------------------------
-Tests run: 1, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 0.484 sec <<< FAILURE!
-testLinearizability(ru.ifmo.pp.fgb.LinearizabilityTest)  Time elapsed: 0.48 sec  <<< ERROR!
-java.lang.AssertionError
-	at ru.ifmo.pp.fgb.LinearizabilityTest.doOneExecution(LinearizabilityTest.java:132)
-	at ru.ifmo.pp.fgb.LinearizabilityTest.doOneRun(LinearizabilityTest.java:85)
-	at ru.ifmo.pp.fgb.LinearizabilityTest.testLinearizability(LinearizabilityTest.java:38)
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 61.554 sec
