@@ -56,7 +56,8 @@ public class BankImpl implements Bank {
         for (Account account : accounts) {
             account.lock.lock();
         }
-        for (Account account : accounts) {
+        for (int i = accounts.length - 1; i >= 0; --i) {
+            Account account = accounts[i];
             sum += account.amount;
             account.lock.unlock();
         }
@@ -73,13 +74,15 @@ public class BankImpl implements Bank {
         Account account = accounts[index];
         long resAmount;
         account.lock.lock();
-        if (amount > MAX_AMOUNT || account.amount + amount > MAX_AMOUNT) {
+        try {
+            if (amount > MAX_AMOUNT || account.amount + amount > MAX_AMOUNT) {
+                throw new IllegalStateException("Overflow");
+            }
+            account.amount += amount;
+            resAmount = account.amount;
+        } finally {
             account.lock.unlock();
-            throw new IllegalStateException("Overflow");
         }
-        account.amount += amount;
-        resAmount = account.amount;
-        account.lock.unlock();
         return resAmount;
     }
 
@@ -93,13 +96,15 @@ public class BankImpl implements Bank {
         Account account = accounts[index];
         long resAmount;
         account.lock.lock();
-        if (account.amount - amount < 0) {
+        try {
+            if (account.amount - amount < 0) {
+                throw new IllegalStateException("Underflow");
+            }
+            account.amount -= amount;
+            resAmount = account.amount;
+        } finally {
             account.lock.unlock();
-            throw new IllegalStateException("Underflow");
         }
-        account.amount -= amount;
-        resAmount = account.amount;
-        account.lock.unlock();
         return resAmount;
     }
 
@@ -114,23 +119,22 @@ public class BankImpl implements Bank {
             throw new IllegalArgumentException("fromIndex == toIndex");
         Account from = accounts[fromIndex];
         Account to = accounts[toIndex];
-        Lock fst = accounts[Math.min(fromIndex, toIndex)].lock;
-        Lock scnd = accounts[Math.max(fromIndex, toIndex)].lock;
-        fst.lock();
-        scnd.lock();
-        if (amount > from.amount) {
-            scnd.unlock();
-            fst.unlock();
-            throw new IllegalStateException("Underflow");
-        } else if (amount > MAX_AMOUNT || to.amount + amount > MAX_AMOUNT) {
-            scnd.unlock();
-            fst.unlock();
-            throw new IllegalStateException("Overflow");
+        Lock first = accounts[Math.min(fromIndex, toIndex)].lock;
+        Lock second = accounts[Math.max(fromIndex, toIndex)].lock;
+        first.lock();
+        second.lock();
+        try {
+            if (amount > from.amount) {
+                throw new IllegalStateException("Underflow");
+            } else if (amount > MAX_AMOUNT || to.amount + amount > MAX_AMOUNT) {
+                throw new IllegalStateException("Overflow");
+            }
+            from.amount -= amount;
+            to.amount += amount;
+        } finally {
+            second.unlock();
+            first.unlock();
         }
-        from.amount -= amount;
-        to.amount += amount;
-        scnd.unlock();
-        fst.unlock();
     }
 
     /**
@@ -140,7 +144,7 @@ public class BankImpl implements Bank {
         /**
          * Amount of funds in this account.
          */
-        volatile long amount;
+        long amount;
         Lock lock;
 
         Account() {
