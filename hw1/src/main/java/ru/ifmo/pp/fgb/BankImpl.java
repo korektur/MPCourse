@@ -53,13 +53,10 @@ public class BankImpl implements Bank {
     @Override
     public long getTotalAmount() {
         long sum = 0;
-        for (Account account : accounts) {
-            account.lock.lock();
-        }
         for (int i = accounts.length - 1; i >= 0; --i) {
-            Account account = accounts[i];
-            sum += account.amount;
-            account.lock.unlock();
+            accounts[i].lock.lock();
+            sum += accounts[i].amount;
+            accounts[i].lock.unlock();
         }
         return sum;
     }
