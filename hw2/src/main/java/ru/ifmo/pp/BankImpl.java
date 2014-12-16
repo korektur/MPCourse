@@ -5,16 +5,15 @@ import java.util.concurrent.atomic.AtomicReferenceArray;
 /**
  * Bank implementation.
  * This class is thread-safe and lock-free using operation objects.
- *
+ * <p>
  * <p>This implementation is based on "A Practical Multi-Word Compare-and-Swap Operation"  by T. L. Harris et al.
  * It uses a simplified and faster version of DCSS operation that relies for its correctness on the fact that
  * Account instances in {@link #accounts} array never suffer from ABA problem.
  * See also "Practical lock-freedom" by Keir Fraser.
  * See {@link #acquire(int, Op)} method.
+ * <p>
  *
- * <p>:TODO: This implementation has to be completed, so that it is thread-safe and lock-free.
- *
- * @author <Фамилия>
+ * @author Ахундов
  */
 public class BankImpl implements Bank {
     /**
@@ -25,6 +24,7 @@ public class BankImpl implements Bank {
 
     /**
      * Creates new bank instance.
+     *
      * @param n the number of accounts (numbered from 0 to n-1).
      */
     public BankImpl(int n) {
@@ -110,18 +110,18 @@ public class BankImpl implements Bank {
      */
     @Override
     public long withdraw(int index, long amount) {
-        // todo: write withdraw operation using deposit as an example
-        /*
-         * Basically, implementation of this method must perform the logic of the following code "atomically":
-         */
         if (amount <= 0)
             throw new IllegalArgumentException("Invalid amount: " + amount);
-        Account account = accounts.get(index);
-        if (account.amount - amount < 0)
-            throw new IllegalStateException("Underflow");
-        Account updated = new Account(account.amount - amount);
-        accounts.set(index, updated);
-        return updated.amount;
+        while (true) {
+            Account account = accounts.get(index);
+            if (!account.invokeOperation()) {
+                if (account.amount - amount < 0)
+                    throw new IllegalStateException("Underflow");
+                Account updated = new Account(account.amount - amount);
+                if (accounts.compareAndSet(index, account, updated))
+                    return updated.amount;
+            }
+        }
     }
 
     /**
@@ -156,7 +156,6 @@ public class BankImpl implements Bank {
      * This method returns null if op.completed is true.
      */
     private AcquiredAccount acquire(int index, Op op) {
-        // todo: write the implementation of this method with the following logic:
         /*
          * This method must loop trying to replace accounts[index] with an instance of
          *     new AcquiredAccount(<old-amount>, op) until that successfully happens and return the
@@ -172,13 +171,23 @@ public class BankImpl implements Bank {
          *
          * Basically, implementation of this method must perform the logic of the following code "atomically":
          */
+        while (true) {
+            Account account = accounts.get(index);
+            if (op.completed)
+                return null;
+            if (account instanceof AcquiredAccount) {
+                AcquiredAccount acquiredAccount = (AcquiredAccount) account;
+                if (acquiredAccount.op == op) {
+                    return acquiredAccount;
+                }
+            }
+            if (!account.invokeOperation()) {
+                AcquiredAccount acquiredAccount = new AcquiredAccount(account.amount, op);
+                if (accounts.compareAndSet(index, account, acquiredAccount))
+                    return acquiredAccount;
+            }
+        }
 
-        if (op.completed)
-            return null;
-        Account account = accounts.get(index);
-        AcquiredAccount acquiredAccount = new AcquiredAccount(account.amount, op);
-        accounts.set(index, acquiredAccount);
-        return acquiredAccount;
     }
 
     /**
@@ -223,6 +232,7 @@ public class BankImpl implements Bank {
 
     /**
      * Account that was acquired as a part of in-progress operation that spans multiple accounts.
+     *
      * @see #acquire(int, Op)
      */
     private static class AcquiredAccount extends Account {
@@ -292,7 +302,7 @@ public class BankImpl implements Bank {
              * As performance optimization, only acquired accounts are released. There is no harm in calling
              * release for all accounts, though.
              */
-            for (; --i >= 0;) {
+            for (; --i >= 0; ) {
                 release(i, this);
             }
         }
@@ -316,7 +326,6 @@ public class BankImpl implements Bank {
 
         @Override
         void invokeOperation() {
-            // todo: write implementation for this method, use TotalAmountOp as an example
             /*
              * In the implementation of this operation only two accounts (with fromIndex and toIndex) needs
              * to be acquired. Unlike TotalAmountOp, this operation has its own result in errorMessage string
@@ -325,16 +334,36 @@ public class BankImpl implements Bank {
              *
              * Basically, implementation of this method must perform the logic of the following code "atomically":
              */
-            Account from = accounts.get(fromIndex);
-            Account to = accounts.get(toIndex);
-            if (amount > from.amount)
-                errorMessage = "Underflow";
-            else if (to.amount + amount > MAX_AMOUNT)
-                errorMessage = "Overflow";
-            else {
-                accounts.set(fromIndex, new Account(from.amount - amount));
-                accounts.set(toIndex, new Account(to.amount + amount));
+            int firstAccountIndex = Math.min(fromIndex, toIndex);
+            int secondAccountIndex = Math.max(fromIndex, toIndex);
+            AcquiredAccount from = acquire(firstAccountIndex, this);
+            if (from == null) {
+                return;
             }
+            AcquiredAccount to = acquire(secondAccountIndex, this);
+            if (to == null) {
+                release(firstAccountIndex, this);
+                return;
+            }
+            if (fromIndex > toIndex) {
+                AcquiredAccount tmp = from;
+                from = to;
+                to = tmp;
+            }
+            if (amount > from.amount) {
+                errorMessage = "Underflow";
+            } else if (to.amount + amount > MAX_AMOUNT) {
+                errorMessage = "Overflow";
+            } else {
+                from.newAmount = from.amount - amount;
+                to.newAmount = to.amount + amount;
+            }
+            this.completed = true;
+            release(secondAccountIndex, this);
+            release(firstAccountIndex, this);
         }
     }
 }
+
+
+
